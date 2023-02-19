@@ -1,0 +1,11 @@
+# Use an openjdk 17 base image as the builder stage
+FROM openjdk:17
+
+# Set the working directory to /app
+WORKDIR /app
+
+# Copy the source code to the container
+COPY target/CurrencyMate.jar /app
+
+# Run the jar file
+CMD ["java", "-jar", "CurrencyMate.jar"]
