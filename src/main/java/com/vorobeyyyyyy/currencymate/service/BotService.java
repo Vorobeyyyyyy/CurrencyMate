@@ -77,11 +77,11 @@ public class BotService {
         BigDecimal diff = current.subtract(old);
         int compare = diff.compareTo(BigDecimal.ZERO);
         if (compare > 0) {
-            return base + "увеличилась на " + diff + " $";
+            return base + "увеличилась на " + diff + " $ - повезло повезло";
         } else if (compare == 0) {
             return base + "не изменилась";
         } else {
-            return base + "уменьшилась на " + diff.abs() + " $";
+            return base + "уменьшилась на " + diff.abs() + " $ - грусти теперь";
         }
     }
 }
