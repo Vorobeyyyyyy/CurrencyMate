@@ -7,9 +7,9 @@ import java.util.List;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.Update;
+import com.pengrad.telegrambot.request.GetUpdates;
 import com.vorobeyyyyyy.currencymate.service.BotService;
 import com.vorobeyyyyyy.currencymate.service.UserService;
-import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -27,7 +27,13 @@ public class BotController {
 
     @EventListener(ApplicationReadyEvent.class)
     public void configureBot() {
-        telegramBot.setUpdatesListener(this::updatesListener);
+        telegramBot.execute(new GetUpdates());
+        telegramBot.setUpdatesListener(
+                this::updatesListener,
+                new GetUpdates()
+                        .limit(1)
+                        .timeout(25)
+        );
     }
 
     private Integer updatesListener(List<Update> updates) {
