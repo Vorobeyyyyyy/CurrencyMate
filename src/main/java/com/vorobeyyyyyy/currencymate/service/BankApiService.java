@@ -15,10 +15,8 @@ import com.vorobeyyyyyy.currencymate.dto.PriorbankExchangeRateDto;
 import com.vorobeyyyyyy.currencymate.parser.MyfinHtmlParser;
 import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
@@ -36,7 +34,7 @@ public class BankApiService {
                 .get("Cur_OfficialRate").decimalValue();
     }
 
-    @Deprecated
+    @Deprecated(forRemoval = true)
     public BigDecimal getPriorbankUsdSellCurrencyRateOld() {
         String page = webClient.get().uri("https://myfin.by/bank/priorbank/currency")
                 .exchangeToMono(response -> response.bodyToMono(String.class))
@@ -45,6 +43,7 @@ public class BankApiService {
     }
 
     @SneakyThrows
+    @Retryable(maxAttempts = 5)
     public BigDecimal getPriorbankUsdSellCurrencyRate() {
         URL url = new URL("https://www.priorbank.by/offers/services/currency-exchange?p_p_id" +
                 "=ExchangeRates_INSTANCE_ExchangeRatesCalculatorView&p_p_lifecycle=2&p_p_resource_id" +
