@@ -2,6 +2,7 @@ package com.vorobeyyyyyy.currencymate.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.request.SendMessage;
@@ -9,10 +10,12 @@ import com.vorobeyyyyyy.currencymate.model.User;
 import com.vorobeyyyyyy.currencymate.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BotService {
 
     private final TelegramBot telegramBot;
@@ -27,7 +30,14 @@ public class BotService {
     public void sendDailyMessages() {
         BigDecimal rate = bankApiService.getNbrbCurrencyRate(456);// RUB curId
         BigDecimal priorbankUsdSellCurrencyRate = bankApiService.getPriorbankUsdSellCurrencyRate();
-        userRepository.findAll().forEach(user -> sendDailyForSingleUser(rate, priorbankUsdSellCurrencyRate, user));
+        userRepository.findAllByLastDailyMessageDateBefore(LocalDate.now())
+                .forEach(user -> {
+                    try {
+                        sendDailyForSingleUser(rate, priorbankUsdSellCurrencyRate, user);
+                    } catch (RuntimeException e) {
+                        log.error("Error send daily message for user: {}", user.getId());
+                    }
+                });
     }
 
     @Transactional
@@ -70,7 +80,7 @@ public class BotService {
                 """).formatted(rate, minRate, priorbankUsdSellCurrencyRate, foodBonus, salaryInByn, salaryInUsd,
                 salaryInBynAfterTaxPlusFood, usdAfterTax, difference(usdAfterTax, user.getLastCheck())));
         user.setLastCheck(usdAfterTax);
-
+        user.setLastDailyMessageDate(LocalDate.now());
     }
 
     private BigDecimal applyTax(BigDecimal before) {

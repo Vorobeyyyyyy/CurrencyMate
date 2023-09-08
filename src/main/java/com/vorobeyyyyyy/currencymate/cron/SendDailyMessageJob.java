@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 public class SendDailyMessageJob {
     private final BotService botService;
 
-    @Scheduled(cron = "0 0 12 * * ?", zone = "Europe/Minsk")
+    @Scheduled(cron = "0 */15 * * * ?", zone = "Europe/Minsk")
     public void sendDailyMessage() {
         botService.sendDailyMessages();
     }
