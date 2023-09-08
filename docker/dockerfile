@@ -8,5 +8,5 @@ RUN mvn package -DskipTests
 # Use an openjdk 17 base image as the builder stage
 FROM openjdk:17
 WORKDIR /app
-COPY --from=builder /app/target/Application.jar .
-CMD ["java", "-jar", "Application.jar"]
+COPY --from=builder /app/target/CurrencyMate.jar .
+CMD ["java", "-jar", "CurrencyMate.jar"]
