@@ -44,5 +44,5 @@ jobs:
           chmod 600 private_key.pem
           ssh -o StrictHostKeyChecking=no -p 8022 -i private_key.pem $REMOTE_HOST "mkdir -p $DEPLOY_PATH"
           scp -o StrictHostKeyChecking=no -P 8022 -i private_key.pem docker/docker-compose.yml $REMOTE_HOST:$DEPLOY_PATH
-          ssh -o StrictHostKeyChecking=no -p 8022 -i private_key.pem $REMOTE_HOST "echo "${{ secrets.ENV }}" > $DEPLOY_PATH/.env"
+          ssh -o StrictHostKeyChecking=no -p 8022 -i private_key.pem $REMOTE_HOST "echo '${{ secrets.ENV }}' > $DEPLOY_PATH/.env"
           ssh -o StrictHostKeyChecking=no -p 8022 -i private_key.pem $REMOTE_HOST "docker compose -f $DEPLOY_PATH/docker-compose.yml up && docker compose -f $DEPLOY_PATH/docker-compose.yml up -d"
