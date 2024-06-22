@@ -35,13 +35,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       REMOTE_HOST: ${{ vars.SSH_USERNAME }}@${{ vars.SSH_HOSTNAME }}
-      DEPLOY_PATH: ~deploy/currency-mate
+      DEPLOY_PATH: deploy/currency-mate
     steps:
       - uses: actions/checkout@v4
       - name: Deploy to server
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
           chmod 600 private_key.pem
+          ssh -o StrictHostKeyChecking=no -p 8022 -i private_key.pem $REMOTE_HOST "mkdir $DEPLOY_PATH"
           scp -o StrictHostKeyChecking=no -P 8022 -i private_key.pem docker/docker-compose.yml $REMOTE_HOST:$DEPLOY_PATH
           ssh -o StrictHostKeyChecking=no -p 8022 -i private_key.pem $REMOTE_HOST "echo "${{ secrets.ENV }}" > $DEPLOY_PATH/.env"
           ssh -o StrictHostKeyChecking=no -p 8022 -i private_key.pem $REMOTE_HOST "docker compose -f $DEPLOY_PATH/docker-compose.yml up && docker compose -f $DEPLOY_PATH/docker-compose.yml up -d"
