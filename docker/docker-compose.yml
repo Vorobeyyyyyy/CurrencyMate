@@ -1,11 +1,4 @@
 version: '3.4'
 services:
   currencymate:
-    network_mode: host
-    image: currencymate
-    env_file:
-      - .env
-    build:
-      context: ../
-      dockerfile: ./docker/dockerfile
-      network: host
+    image: vorobeyyyyyy/currency-mate:latest
