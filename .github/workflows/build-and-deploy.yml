@@ -30,3 +30,4 @@ jobs:
             vorobeyyyyyy/currency-mate:latest
             vorobeyyyyyy/currency-mate:${{ github.sha }}
           file: "docker/Dockerfile"
+          platforms: linux/amd64,linux/arm64
