@@ -29,4 +29,4 @@ jobs:
           tags: |
             vorobeyyyyyy/currency-mate:latest
             vorobeyyyyyy/currency-mate:${{ github.sha }}
-          file: "{context}/docker/Dockerfile"
+          file: "docker/Dockerfile"
