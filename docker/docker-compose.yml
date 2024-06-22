@@ -2,3 +2,5 @@ version: '3.4'
 services:
   currencymate:
     image: vorobeyyyyyy/currency-mate:latest
+    env_file:
+      - .env

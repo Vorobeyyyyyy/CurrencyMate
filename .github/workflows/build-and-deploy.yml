@@ -33,11 +33,15 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    env:
+      REMOTE_HOST: ${{ vars.SSH_USERNAME }}@${{ vars.SSH_HOSTNAME }}
+      DEPLOY_PATH: ~deploy/currency-mate
     steps:
       - uses: actions/checkout@v4
       - name: Deploy to server
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
           chmod 600 private_key.pem
-          scp -p 8022 -i private_key.pem docker/docker-compose.yml ${{ vars.SSH_USERNAME }}@${{ vars.SSH_HOSTNAME }}:/deploy
-          ssh -p 8022 -i private_key.pem ${{ vars.SSH_USERNAME }}@${{ vars.SSH_HOSTNAME }} "docker compose -f /deploy/docker-compose.yml up && docker compose -f /deploy/docker-compose.yml up -d"
+          scp -p 8022 -i private_key.pem docker/docker-compose.yml $REMOTE_HOST:$DEPLOY_PATH
+          ssh -p 8022 -i private_key.pem $REMOTE_HOST "echo "${{ secrets.ENV }}" > $DEPLOY_PATH/.env"
+          ssh -p 8022 -i private_key.pem $REMOTE_HOST "docker compose -f $DEPLOY_PATH/docker-compose.yml up && docker compose -f $DEPLOY_PATH/docker-compose.yml up -d"
