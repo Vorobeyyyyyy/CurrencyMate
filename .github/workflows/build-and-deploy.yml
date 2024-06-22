@@ -31,6 +31,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,5 +39,5 @@ jobs:
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key.pem
           chmod 600 private_key.pem
-          scp -i private_key.pem docker/docker-compose.yml ${{ vars.SSH_USERNAME }}@${{ vars.SSH_HOSTNAME }}:/deploy
-          ssh -i private_key.pem ${{ vars.SSH_USERNAME }}@${{ vars.SSH_HOSTNAME }} "docker pull vorobeyyyyyy/currency-mate:latest && docker-compose -f /deploy/docker-compose.yml up -d"
+          scp -p 8022 -i private_key.pem docker/docker-compose.yml ${{ vars.SSH_USERNAME }}@${{ vars.SSH_HOSTNAME }}:/deploy
+          ssh -p 8022 -i private_key.pem ${{ vars.SSH_USERNAME }}@${{ vars.SSH_HOSTNAME }} "docker compose -f /deploy/docker-compose.yml up && docker compose -f /deploy/docker-compose.yml up -d"
