@@ -4,8 +4,8 @@ currencymate:
 
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://db.bacxjchgkksxkjiesfcm.supabase.co:5432/postgres}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://aws-0-eu-central-1.pooler.supabase.com:5432/postgres}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres.bacxjchgkksxkjiesfcm}
     password: ${SPRING_DATASOURCE_PASSWORD}
   jpa:
     hibernate:
