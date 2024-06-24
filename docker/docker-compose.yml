@@ -3,3 +3,4 @@ services:
     image: vorobeyyyyyy/currency-mate:latest
     env_file:
       - .env
+    restart: unless-stopped
