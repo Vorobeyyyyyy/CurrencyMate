@@ -1,11 +1,11 @@
 package com.vorobeyyyyyy.currencymate.service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.request.SendMessage;
+import com.vorobeyyyyyy.currencymate.exception.MessageException;
 import com.vorobeyyyyyy.currencymate.model.User;
 import com.vorobeyyyyyy.currencymate.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class BotService {
 
+    public static final int RUB_CUR_ID = 456;
     private final TelegramBot telegramBot;
     private final BankApiService bankApiService;
     private final UserRepository userRepository;
@@ -42,7 +43,7 @@ public class BotService {
 
     @Transactional
     public void sendDailyForSingleUser(long chatId) {
-        BigDecimal rate = bankApiService.getNbrbCurrencyRate(456);// RUB curId
+        BigDecimal rate = bankApiService.getNbrbCurrencyRate(RUB_CUR_ID);// RUB curId
         BigDecimal priorbankUsdSellCurrencyRate = bankApiService.getPriorbankUsdSellCurrencyRate();
         userRepository.findByChatId(chatId)
                 .ifPresentOrElse(user -> sendDailyForSingleUser(rate, priorbankUsdSellCurrencyRate, user),
@@ -50,20 +51,13 @@ public class BotService {
     }
 
     private void sendDailyForSingleUser(BigDecimal rate, BigDecimal priorbankUsdSellCurrencyRate, User user) {
-        BigDecimal minRate = new BigDecimal("3.3746");
-        BigDecimal foodBonus = new BigDecimal("320");
-        BigDecimal salary = user.getSalary();
-        BigDecimal salaryInByn = salary
-                .multiply(rate.max(minRate)).setScale(2, RoundingMode.CEILING)
-                .divide(BigDecimal.valueOf(100L), 2, RoundingMode.CEILING);
-        BigDecimal salaryInBynAfterTaxPlusFood = applyTax(salaryInByn).add(foodBonus);
+        SalaryCalculationHelper helper = SalaryCalculationHelper.builder()
+                .usdRate(priorbankUsdSellCurrencyRate)
+                .rubRate(rate)
+                .salaryRub(user.getSalary())
+                .build();
 
-        BigDecimal salaryInUsd = salaryInByn.add(foodBonus)
-                .divide(priorbankUsdSellCurrencyRate, 2, RoundingMode.CEILING);
-
-        BigDecimal usdAfterTax = salaryInBynAfterTaxPlusFood
-                .divide(priorbankUsdSellCurrencyRate, 2, RoundingMode.CEILING);
-
+        BigDecimal usdAfterTax = helper.getSalaryUsdAfterTaxPlusFood();
         sendMessage(user.getChatId(), ("""
                 RUB в BYN по НБРБ - %s
                 Минимальный порог RUB в BYN - %s
@@ -77,15 +71,21 @@ public class BotService {
                 После налогов:
                 %s byn
                 %s $%s
-                """).formatted(rate, minRate, priorbankUsdSellCurrencyRate, foodBonus, salaryInByn, salaryInUsd,
-                salaryInBynAfterTaxPlusFood, usdAfterTax, difference(usdAfterTax, user.getLastCheck())));
+                """).formatted(
+                rate,
+                helper.getMinRubRate(),
+                priorbankUsdSellCurrencyRate,
+                helper.getFoodCompensationByn(),
+                helper.getSalaryByn(),
+                helper.getSalaryUsdPlusFood(),
+                helper.getSalaryBynAfterTaxPlusFood(),
+                usdAfterTax,
+                difference(usdAfterTax, user.getLastCheck())
+        ));
         user.setLastCheck(usdAfterTax);
         user.setLastDailyMessageDate(LocalDate.now());
     }
 
-    private BigDecimal applyTax(BigDecimal before) {
-        return before.multiply(new BigDecimal("0.87")).setScale(2, RoundingMode.CEILING);
-    }
 
     private String difference(BigDecimal current, BigDecimal old) {
         if (old == null) {
@@ -101,5 +101,50 @@ public class BotService {
         } else {
             return base + "уменьшилась на " + diff.abs() + " $ - грусти теперь";
         }
+    }
+
+    public void sendThisMonth(long chatId) {
+        User user = getUserOrAskSalary(chatId);
+        LocalDate now = LocalDate.now();
+        LocalDate date = now.getDayOfMonth() >= 15 ?
+                now.withDayOfMonth(15) :
+                now.withDayOfMonth(15).minusMonths(1);
+        BigDecimal rubRate = bankApiService.getNbrbCurrencyRate(RUB_CUR_ID, date);
+        BigDecimal priorbankUsdSellCurrencyRate = bankApiService.getPriorbankUsdSellCurrencyRate();
+
+        SalaryCalculationHelper helper = SalaryCalculationHelper.builder()
+                .salaryRub(user.getSalary())
+                .rubRate(rubRate)
+                .usdRate(priorbankUsdSellCurrencyRate)
+                .build();
+
+        sendMessage(chatId, """
+                Курс НБРБ %s - %s
+                 
+                Твоя ЗП на сегодня:
+                %s byn
+                %s $
+                                
+                После налогов:
+                %s byn
+                %s $
+                               
+                С учетом минимальных премий 80%%:
+                %s byn
+                %s $
+                """.formatted(
+                date,
+                rubRate,
+                helper.getSalaryBynPlusFood(),
+                helper.getSalaryUsdPlusFood(),
+                helper.getSalaryBynAfterTaxPlusFood(),
+                helper.getSalaryUsdAfterTaxPlusFood(),
+                helper.getSalaryBynAfterTaxPlusFoodAndBonus(),
+                helper.getSalaryUsdAfterTaxPlusFoodAndBonus()
+        ));
+    }
+
+    private User getUserOrAskSalary(long chatId) {
+        return userRepository.findByChatId(chatId).orElseThrow(() -> new MessageException("Сперва введи свою зп"));
     }
 }

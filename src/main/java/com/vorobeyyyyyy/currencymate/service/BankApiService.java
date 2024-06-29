@@ -2,10 +2,14 @@ package com.vorobeyyyyyy.currencymate.service;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
@@ -13,32 +17,54 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vorobeyyyyyy.currencymate.dto.PriorbankExchangeRateDto;
 import com.vorobeyyyyyy.currencymate.parser.MyfinHtmlParser;
-import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Service
-@AllArgsConstructor
 public class BankApiService {
 
-    private final WebClient webClient;
+    private final RestClient restClient;
     private final MyfinHtmlParser myfinHtmlParser;
 
-    @SuppressWarnings("all") //todo remove
+    public BankApiService(MyfinHtmlParser myfinHtmlParser) {
+        this.restClient = RestClient.create();
+        this.myfinHtmlParser = myfinHtmlParser;
+    }
+
     public BigDecimal getNbrbCurrencyRate(int curId) {
-        return webClient.get().uri("https://www.nbrb.by/api/exrates/rates/" + curId)
-                .exchangeToMono(response -> response.bodyToMono(JsonNode.class))
-                .block()
-                .get("Cur_OfficialRate").decimalValue();
+        return getNbrbCurrencyRate(curId, null);
+    }
+
+    @Cacheable("getNbrbCurrencyRate")
+    public BigDecimal getNbrbCurrencyRate(int curId, LocalDate date) {
+        return restClient.get()
+                .uri(ub -> {
+                    ub.scheme("https");
+                    ub.host("www.nbrb.by");
+                    ub.path("/api/exrates/rates/{curId}");
+                    if (date != null) {
+                        ub.queryParam("ondate", date.format(DateTimeFormatter.ISO_LOCAL_DATE));
+                    }
+                    return ub.build(curId);
+                })
+                .retrieve()
+                .body(JsonNode.class)
+                .get("Cur_OfficialRate")
+                .decimalValue();
     }
 
     @Deprecated(forRemoval = true)
     public BigDecimal getPriorbankUsdSellCurrencyRateOld() {
-        String page = webClient.get().uri("https://myfin.by/bank/priorbank/currency")
-                .exchangeToMono(response -> response.bodyToMono(String.class))
-                .block();
+        String page = restClient.get()
+                .uri("https://myfin.by/bank/priorbank/currency")
+                .retrieve()
+                .toEntity(String.class)
+                .getBody();
         return myfinHtmlParser.parseUsdSellCurrency(page);
     }
 
