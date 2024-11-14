@@ -44,12 +44,13 @@ public class BotController {
 
     private void handleUpdate(Update update) {
         if (update.message() != null && update.message().text() != null) {
-            String message = update.message().text();
+            String messageText = update.message().text();
             Long chatId = update.message().chat().id();
             try {
-                switch (message) {
+                String[] messageParts = messageText.split(" ");
+                switch (messageParts[0]) {
                     case "/set" -> {
-                        BigDecimal salary = new BigDecimal(message.split(" ")[1])
+                        BigDecimal salary = new BigDecimal(messageParts[1])
                                 .setScale(0, RoundingMode.CEILING);
                         userService.updateUserSalary(chatId, salary);
                         botService.sendDailyForSingleUser(chatId);
